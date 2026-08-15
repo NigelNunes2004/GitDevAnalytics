@@ -21,6 +21,17 @@ class Settings(BaseSettings):
     github_token: str = ""
     cors_origins: str = "http://localhost:5173,http://localhost:3000"
     sync_interval_minutes: int = 60
+    stale_days: int = 14
+    github_webhook_secret: str = ""
+    uptime_check_url: str = "http://127.0.0.1:8000/health"
+    uptime_interval_minutes: int = 5
+
+    # Auth / multi-user
+    jwt_secret: str = "dev-only-change-me-in-production"
+    jwt_expire_minutes: int = 10080
+    # Fernet key (url-safe base64 32-byte). Generate with Fernet.generate_key().
+    token_encryption_key: str = ""
+    bootstrap_admin_email: str = "admin@localhost"
 
     @property
     def cors_origin_list(self) -> list[str]:

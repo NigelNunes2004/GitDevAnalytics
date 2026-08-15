@@ -47,7 +47,7 @@ def upgrade() -> None:
     op.create_table(
         "pull_requests",
         sa.Column("id", sa.Integer(), nullable=False),
-        sa.Column("github_id", sa.Integer(), nullable=False),
+        sa.Column("github_id", sa.BigInteger(), nullable=False),
         sa.Column("number", sa.Integer(), nullable=False),
         sa.Column("repo_id", sa.Integer(), nullable=False),
         sa.Column("title", sa.String(length=512), nullable=False),
@@ -65,7 +65,7 @@ def upgrade() -> None:
     op.create_table(
         "issues",
         sa.Column("id", sa.Integer(), nullable=False),
-        sa.Column("github_id", sa.Integer(), nullable=False),
+        sa.Column("github_id", sa.BigInteger(), nullable=False),
         sa.Column("number", sa.Integer(), nullable=False),
         sa.Column("repo_id", sa.Integer(), nullable=False),
         sa.Column("title", sa.String(length=512), nullable=False),

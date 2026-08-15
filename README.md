@@ -38,11 +38,15 @@ flowchart LR
 ## Features
 
 1. Track `owner/repo` repositories
-2. Sync commits, pull requests, and issues via the GitHub REST API (rate-limit aware)
-3. Aggregation APIs: commits over time, PR turnaround, contributor leaderboard
-4. Dashboard UI to chart the aggregates
-5. Background refresh with APScheduler
-6. Dockerized local stack + CI pipeline
+2. Sync commits, pull requests, issues, CI workflow runs, languages, and first-review times
+3. Aggregation APIs: commits, PR turnaround, contributors, health score, stale alerts, review latency, languages, compare
+4. Export JSON/CSV
+5. GitHub webhook ingest (`POST /webhooks/github`)
+6. API uptime probe panel
+7. Dashboard UI for the above
+8. Background refresh with APScheduler
+9. Dockerized local stack + CI pipeline
+10. Email/password JWT auth with per-user GitHub username + PAT in Settings
 
 ## Quick start (local)
 
@@ -57,7 +61,9 @@ flowchart LR
 
 ```bash
 cp .env.example .env
-# Edit .env and set GITHUB_TOKEN=ghp_...
+# Edit .env: set JWT_SECRET, optionally TOKEN_ENCRYPTION_KEY.
+# GITHUB_TOKEN remains a fallback for webhooks/scheduler only.
+# Each user saves their own PAT in the Settings tab after login.
 ```
 
 ### 2. Start Postgres
@@ -89,7 +95,9 @@ npm install
 npm run dev
 ```
 
-Open [http://localhost:5173](http://localhost:5173).
+Open [http://localhost:5173](http://localhost:5173). Register an account, open **Settings**, save your GitHub username + PAT, then track/sync repos.
+
+JWT is stored in `localStorage` (fine for a portfolio demo; XSS can steal it — keep deps patched).
 
 ### 5. Full stack via Docker (optional)
 
@@ -106,11 +114,15 @@ docker compose up --build
 
 | Method | Path | Purpose |
 | --- | --- | --- |
-| GET | `/health` | Liveness check |
-| POST | `/repos` | Track repos `{ "repos": ["owner/name"] }` |
-| GET | `/repos` | List tracked repos |
-| POST | `/sync` | Fetch GitHub data for all tracked repos |
-| POST | `/repos/{id}/sync` | Sync one repo |
+| GET | `/health` | Liveness check (public) |
+| POST | `/auth/register` | Create account `{ email, password }` |
+| POST | `/auth/login` | Login → JWT |
+| GET | `/auth/me` | Current user (JWT) |
+| GET/PUT | `/settings/github` | GitHub username + PAT (masked on read) |
+| POST | `/repos` | Track repos `{ "repos": ["owner/name"] }` (JWT, per-user) |
+| GET | `/repos` | List tracked repos (JWT) |
+| POST | `/sync` | Sync with **current user’s** PAT (JWT) |
+| POST | `/repos/{id}/sync` | Sync one repo (JWT) |
 | GET | `/stats/commits?repo=&period=day\|week` | Commits over time |
 | GET | `/stats/pr-turnaround?repo=` | Merged PR hours/days |
 | GET | `/stats/contributors?repo=` | Commits per author |
@@ -122,10 +134,16 @@ Secrets never belong in source control. The same variable **names** are used eve
 | Variable | Local | Render (backend) | Vercel (frontend) | GitHub Actions |
 | --- | --- | --- | --- | --- |
 | `DATABASE_URL` | `.env` → local Postgres or Supabase | Render dashboard secret | n/a | test override / unused |
-| `GITHUB_TOKEN` | `.env` | Render dashboard secret | n/a | dummy for unit tests |
+| `GITHUB_TOKEN` | `.env` (webhook/scheduler fallback) | Optional fallback | n/a | dummy for unit tests |
+| `JWT_SECRET` | `.env` | **Required** strong secret | n/a | test default |
+| `JWT_EXPIRE_MINUTES` | `.env` (default 7 days) | Render env | n/a | n/a |
+| `TOKEN_ENCRYPTION_KEY` | Fernet key (or derive from JWT) | **Required** in prod | n/a | n/a |
+| `BOOTSTRAP_ADMIN_EMAIL` | Migration seed email | Optional | n/a | n/a |
 | `CORS_ORIGINS` | `.env` (includes Vite origin) | Must include your Vercel URL | n/a | test value |
 | `SYNC_INTERVAL_MINUTES` | `.env` | Render env | n/a | n/a |
 | `VITE_API_BASE_URL` | `frontend/.env` | n/a | Vercel env (Render API URL) | CI build arg |
+
+**Auth model:** passwords are bcrypt-hashed; each user’s GitHub PAT is Fernet-encrypted at rest and never returned in full after save. Interactive Sync uses the logged-in user’s PAT. Webhooks still use the server `GITHUB_TOKEN` (global/advanced).
 
 **Why this matters:** swapping local Postgres for Supabase is a connection-string change only. The app code always reads `DATABASE_URL`.
 
@@ -163,7 +181,7 @@ Run the same `alembic upgrade head` against Supabase before or as the Render ser
 
 1. New **Web Service** from this repo
 2. Root directory / Dockerfile path: `backend`
-3. Set env vars: `DATABASE_URL`, `GITHUB_TOKEN`, `CORS_ORIGINS` (your Vercel URL), `SYNC_INTERVAL_MINUTES`
+3. Set env vars: `DATABASE_URL`, `JWT_SECRET`, `TOKEN_ENCRYPTION_KEY`, `CORS_ORIGINS` (your Vercel URL), `SYNC_INTERVAL_MINUTES`; optional `GITHUB_TOKEN` for webhooks
 4. Health check path: `/health`
 5. Expect cold starts after idle spin-down on the free tier
 

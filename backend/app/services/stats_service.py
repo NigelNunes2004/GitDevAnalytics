@@ -1,11 +1,4 @@
-"""SQL + light Python aggregations over stored GitHub data (not live API calls).
-
-Why aggregate from Postgres: charts need fast, repeatable JSON; re-hitting GitHub
-on every page load would burn rate limit and be slow. Sync once, query many times.
-
-Bucketing (day/week) is done in Python so the same code works on local Postgres,
-Supabase, and SQLite in tests — easier to explain in interviews than dialect-specific SQL.
-"""
+"""SQL + light Python aggregations over stored GitHub data (not live API calls)."""
 
 from __future__ import annotations
 
@@ -19,27 +12,28 @@ from app.models import Commit, PullRequest, TrackedRepository
 from app.schemas import CommitCountPoint, ContributorStat, PRTurnaroundItem
 
 
-def _resolve_repo_id(db: Session, repo: str | None) -> int | None:
-    if not repo:
-        return None
-    found = db.scalar(select(TrackedRepository).where(TrackedRepository.full_name == repo))
-    return found.id if found else None
+def _user_repo_ids(db: Session, user_id: int, repo: str | None = None) -> list[int]:
+    stmt = select(TrackedRepository.id).where(TrackedRepository.user_id == user_id)
+    if repo:
+        stmt = stmt.where(TrackedRepository.full_name == repo)
+    return list(db.scalars(stmt).all())
 
 
 def _week_start(dt: datetime) -> str:
-    # Monday as start of week (ISO)
     monday = (dt.date() - timedelta(days=dt.weekday()))
     return monday.isoformat()
 
 
 def commits_over_time(
-    db: Session, repo: str | None = None, period: str = "day"
+    db: Session,
+    user_id: int,
+    repo: str | None = None,
+    period: str = "day",
 ) -> list[CommitCountPoint]:
-    repo_id = _resolve_repo_id(db, repo)
-    stmt = select(Commit)
-    if repo_id is not None:
-        stmt = stmt.where(Commit.repo_id == repo_id)
-    commits = list(db.scalars(stmt).all())
+    repo_ids = _user_repo_ids(db, user_id, repo)
+    if not repo_ids:
+        return []
+    commits = list(db.scalars(select(Commit).where(Commit.repo_id.in_(repo_ids))).all())
 
     buckets: dict[str, int] = defaultdict(int)
     for commit in commits:
@@ -55,16 +49,17 @@ def commits_over_time(
     ]
 
 
-def contributor_activity(db: Session, repo: str | None = None) -> list[ContributorStat]:
-    repo_id = _resolve_repo_id(db, repo)
-    stmt = select(Commit)
-    if repo_id is not None:
-        stmt = stmt.where(Commit.repo_id == repo_id)
-    commits = list(db.scalars(stmt).all())
+def contributor_activity(
+    db: Session, user_id: int, repo: str | None = None
+) -> list[ContributorStat]:
+    repo_ids = _user_repo_ids(db, user_id, repo)
+    if not repo_ids:
+        return []
+    commits = list(db.scalars(select(Commit).where(Commit.repo_id.in_(repo_ids))).all())
 
     counts: dict[str, int] = defaultdict(int)
     for commit in commits:
-        author = commit.author_login or commit.author_name or "unknown"
+        author = commit.author_login or commit.author_name or "bob"
         counts[author] += 1
 
     return [
@@ -73,13 +68,18 @@ def contributor_activity(db: Session, repo: str | None = None) -> list[Contribut
     ]
 
 
-def pr_turnaround(db: Session, repo: str | None = None) -> list[PRTurnaroundItem]:
-    """Hours/days from PR opened → merged (only merged PRs)."""
-    repo_id = _resolve_repo_id(db, repo)
-    stmt = select(PullRequest).where(PullRequest.merged_at.is_not(None))
-    if repo_id is not None:
-        stmt = stmt.where(PullRequest.repo_id == repo_id)
-    prs = list(db.scalars(stmt.order_by(PullRequest.merged_at.desc())).all())
+def pr_turnaround(
+    db: Session, user_id: int, repo: str | None = None
+) -> list[PRTurnaroundItem]:
+    repo_ids = _user_repo_ids(db, user_id, repo)
+    if not repo_ids:
+        return []
+    stmt = (
+        select(PullRequest)
+        .where(PullRequest.merged_at.is_not(None), PullRequest.repo_id.in_(repo_ids))
+        .order_by(PullRequest.merged_at.desc())
+    )
+    prs = list(db.scalars(stmt).all())
 
     items: list[PRTurnaroundItem] = []
     for pr in prs:

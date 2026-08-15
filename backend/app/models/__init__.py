@@ -1,3 +1,21 @@
-from app.models.entities import Commit, Issue, PullRequest, TrackedRepository
+from app.models.entities import (
+    Commit,
+    Issue,
+    PullRequest,
+    RepoLanguage,
+    TrackedRepository,
+    UptimeCheck,
+    User,
+    WorkflowRun,
+)
 
-__all__ = ["TrackedRepository", "Commit", "PullRequest", "Issue"]
+__all__ = [
+    "User",
+    "TrackedRepository",
+    "Commit",
+    "PullRequest",
+    "Issue",
+    "WorkflowRun",
+    "RepoLanguage",
+    "UptimeCheck",
+]

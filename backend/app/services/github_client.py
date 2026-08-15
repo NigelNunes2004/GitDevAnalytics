@@ -130,6 +130,30 @@ class GitHubClient:
         # GitHub's issues endpoint also returns PRs; we filter those out in the sync service
         return self._paginate(f"/repos/{owner}/{repo}/issues", params={"state": "all"})
 
+    def fetch_languages(self, owner: str, repo: str) -> dict[str, int]:
+        data = self._request("GET", f"{GITHUB_API}/repos/{owner}/{repo}/languages")
+        if not isinstance(data, dict):
+            return {}
+        return {str(k): int(v) for k, v in data.items()}
+
+    def fetch_workflow_runs(self, owner: str, repo: str, per_page: int = 15) -> list[dict]:
+        data = self._request(
+            "GET",
+            f"{GITHUB_API}/repos/{owner}/{repo}/actions/runs",
+            params={"per_page": per_page},
+        )
+        if isinstance(data, dict):
+            runs = data.get("workflow_runs") or []
+            return runs if isinstance(runs, list) else []
+        return []
+
+    def fetch_pull_reviews(self, owner: str, repo: str, number: int) -> list[dict]:
+        return self._paginate(
+            f"/repos/{owner}/{repo}/pulls/{number}/reviews",
+            params={"per_page": 50},
+            max_pages=1,
+        )
+
 
 def parse_github_datetime(value: str | None) -> datetime | None:
     if not value:

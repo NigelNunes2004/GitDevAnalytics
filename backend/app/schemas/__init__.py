@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, EmailStr, Field, field_validator
 
 
 class TrackReposRequest(BaseModel):
@@ -34,6 +34,8 @@ class SyncResult(BaseModel):
     commits_upserted: int
     pull_requests_upserted: int
     issues_upserted: int
+    workflow_runs_upserted: int = 0
+    reviews_updated: int = 0
     rate_limit_remaining: int | None = None
 
 
@@ -63,3 +65,125 @@ class PRTurnaroundItem(BaseModel):
 
 class HealthResponse(BaseModel):
     status: str
+
+
+class RepoHealthScore(BaseModel):
+    repo: str
+    score: float
+    commits_last_7_days: int
+    open_prs: int
+    stale_prs: int
+    open_issues: int
+    stale_issues: int
+    recent_ci_failures: int
+
+
+class StaleAlert(BaseModel):
+    kind: str
+    repo: str
+    number: int
+    title: str
+    author: str | None
+    age_days: float
+    created_at: datetime
+
+
+class StaleAlertsResponse(BaseModel):
+    stale_days: int
+    items: list[StaleAlert]
+
+
+class WorkflowRunOut(BaseModel):
+    repo: str
+    name: str
+    status: str
+    conclusion: str | None
+    html_url: str | None
+    run_started_at: datetime | None
+    duration_seconds: float | None
+
+
+class ReviewLatencyItem(BaseModel):
+    number: int
+    title: str
+    author: str | None
+    hours_to_first_review: float
+    days_to_first_review: float
+    created_at: datetime
+    first_review_at: datetime
+
+
+class LanguageStat(BaseModel):
+    language: str
+    bytes: int
+    percent: float
+
+
+class CompareSide(BaseModel):
+    repo: str
+    commits: int
+    contributors: int
+    open_prs: int
+    merged_prs: int
+    avg_pr_turnaround_hours: float | None
+    avg_review_latency_hours: float | None
+
+
+class CompareResponse(BaseModel):
+    a: CompareSide
+    b: CompareSide
+
+
+class UptimePoint(BaseModel):
+    checked_at: datetime
+    ok: bool
+    latency_ms: float | None
+    detail: str | None
+
+
+class UptimeSummary(BaseModel):
+    total_checks: int
+    up_percent: float
+    latest: UptimePoint | None
+    recent: list[UptimePoint]
+
+
+class WebhookAck(BaseModel):
+    status: str
+    detail: str
+
+
+class RegisterRequest(BaseModel):
+    email: EmailStr
+    password: str = Field(min_length=8, max_length=128)
+
+
+class LoginRequest(BaseModel):
+    email: EmailStr
+    password: str
+
+
+class UserOut(BaseModel):
+    id: int
+    email: EmailStr
+    github_username: str | None = None
+    token_configured: bool = False
+
+    model_config = {"from_attributes": True}
+
+
+class TokenResponse(BaseModel):
+    access_token: str
+    token_type: str = "bearer"
+    user: UserOut
+
+
+class GitHubSettingsOut(BaseModel):
+    github_username: str | None
+    token_configured: bool
+    token_hint: str | None = None
+
+
+class GitHubSettingsUpdate(BaseModel):
+    github_username: str = Field(min_length=1, max_length=255)
+    github_token: str = Field(min_length=8, max_length=200)
