@@ -1,0 +1,18 @@
+# Optional Render Blueprint — you can still configure the service manually in the UI.
+services:
+  - type: web
+    name: git-activity-dashboard-api
+    runtime: docker
+    dockerfilePath: ./backend/Dockerfile
+    dockerContext: ./backend
+    plan: free
+    healthCheckPath: /health
+    envVars:
+      - key: DATABASE_URL
+        sync: false
+      - key: GITHUB_TOKEN
+        sync: false
+      - key: CORS_ORIGINS
+        sync: false
+      - key: SYNC_INTERVAL_MINUTES
+        value: "60"

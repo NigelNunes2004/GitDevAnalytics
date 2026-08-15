@@ -1,0 +1,51 @@
+# Git Activity Dashboard — Cursor Project Rules
+
+## Project Overview
+
+I'm building a **Git Activity Dashboard** — a full-stack DevOps-flavored portfolio project. It pulls commit/PR/issue activity from the GitHub API for a set of repositories, stores and aggregates that data, and visualizes engineering activity (commits per day, PR turnaround time, contributor activity) in a web dashboard.
+
+**Why I'm building this:** I'm a final-year CS student targeting DevOps + full-stack roles. This project needs to demonstrate real backend engineering, containerization, and CI/CD practices — not just a CRUD app. I have a 3/10 backend skill level currently, so I need you to explain backend/infra concepts clearly as we go, not just generate code silently. Treat me like a competent frontend dev who is learning backend and DevOps for the first time.
+
+## Tech Stack (fixed — do not suggest alternatives)
+
+- **Frontend:** React + TypeScript (Vite), Tailwind CSS, Recharts for charts
+- **Backend:** Python + FastAPI, SQLAlchemy ORM, Pydantic for validation
+- **Database:** PostgreSQL — local Postgres container for development, **Supabase** (managed free-tier Postgres) for the deployed version. Connection string must always come from an environment variable (`DATABASE_URL`) so the same codebase works against either without code changes.
+- **Auth to GitHub:** GitHub Personal Access Token (stored as an environment variable, never hardcoded)
+- **Containerization:** Docker (separate Dockerfiles for frontend and backend, multi-stage builds)
+- **Local orchestration:** docker-compose (frontend + backend + local Postgres services) — this is for local dev only
+- **CI/CD:** GitHub Actions (lint + test + build on every push)
+- **Deployment target (all free tier, $0 budget):**
+  - Database: Supabase (managed Postgres)
+  - Backend (FastAPI, Dockerized): Render free tier — note it spins down after ~15 min idle, ~30-50s cold start on next request; mention this in the README so it's not mistaken for a bug
+  - Frontend (React/Vite): Vercel free tier
+  - Keep this env-var-driven local-vs-deployed split in mind from the start — don't hardcode any connection details anywhere
+- **Migrations:** Alembic (do not use `create_all()` for schema — I want to actually practice real migrations). Migrations must run cleanly against both local Postgres and Supabase.
+
+## Core Features (build in this order)
+
+1. Backend: GitHub API integration
+2. Backend: Aggregation endpoints
+3. Frontend: Dashboard UI
+4. Background refresh (APScheduler)
+5. Dockerization
+6. CI/CD
+7. Deployment
+
+## How to work with me
+
+- **Explain before you generate.** Before writing backend/infra code, briefly explain the concept in 2–4 sentences.
+- **Go in phases, not all at once.** Build and verify each numbered feature before moving to the next.
+- **Flag DevOps/production concepts explicitly** as they come up (secrets management, health checks, rate limiting, connection pooling).
+- **Prefer clarity over cleverness.** Keep code readable and avoid overly clever abstractions.
+- **Ask me before adding new dependencies** outside the stack listed above.
+- **At the end, help me write a strong README** with architecture diagram, setup instructions, and a "what I learned" section.
+
+## Locked defaults
+
+- Monorepo: `backend/` + `frontend/` + root `docker-compose.yml`
+- SQLAlchemy sync engine + sessions
+- httpx for GitHub HTTP
+- APScheduler inside FastAPI lifespan for background sync
+- ruff (backend) + ESLint (frontend)
+- pytest + FastAPI TestClient with mocked GitHub

@@ -1,0 +1,40 @@
+# Environment / secrets
+.env
+.env.local
+.env.*.local
+*.pem
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+.venv/
+venv/
+ENV/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+*.egg-info/
+dist/
+build/
+.coverage
+htmlcov/
+
+# Node / frontend
+frontend/node_modules/
+frontend/dist/
+frontend/.vite/
+*.log
+npm-debug.log*
+
+# IDE / OS
+.DS_Store
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Docker
+postgres_data/
