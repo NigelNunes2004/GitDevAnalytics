@@ -48,6 +48,8 @@ function qs(params: Record<string, string | undefined>) {
 export type User = {
   id: number
   email: string
+  display_name: string | null
+  avatar_url: string | null
   github_username: string | null
   token_configured: boolean
 }
@@ -193,10 +195,22 @@ export const api = {
     }),
   me: () => request<User>('/auth/me'),
   getGitHubSettings: () => request<GitHubSettings>('/settings/github'),
-  saveGitHubSettings: (github_username: string, github_token: string) =>
+  saveGitHubSettings: (github_token: string, github_username?: string) =>
     request<GitHubSettings>('/settings/github', {
       method: 'PUT',
-      body: JSON.stringify({ github_username, github_token }),
+      body: JSON.stringify({
+        github_token,
+        ...(github_username ? { github_username } : {}),
+      }),
+    }),
+  saveProfile: (payload: {
+    display_name?: string | null
+    github_username?: string | null
+    avatar_url?: string | null
+  }) =>
+    request<User>('/settings/profile', {
+      method: 'PUT',
+      body: JSON.stringify(payload),
     }),
   listRepos: () => request<Repository[]>('/repos'),
   trackRepos: (repos: string[]) =>

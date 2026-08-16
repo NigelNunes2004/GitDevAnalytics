@@ -1,16 +1,26 @@
 @import "tailwindcss";
 
 :root {
-  --bg: #f3f5f7;
-  --surface: #ffffff;
-  --ink: #14212b;
-  --muted: #5b6b78;
-  --line: #d7dee5;
-  --accent: #0f6e56;
-  --accent-soft: #e4f3ee;
-  --warn: #9a3412;
-  --font: "IBM Plex Sans", "Segoe UI", sans-serif;
-  --mono: "IBM Plex Mono", ui-monospace, monospace;
+  /* GitHub Primer dark-inspired tokens */
+  --bg: #0d1117;
+  --canvas: #010409;
+  --surface: #161b22;
+  --surface-2: #21262d;
+  --ink: #e6edf3;
+  --muted: #8b949e;
+  --line: #30363d;
+  --accent: #238636;
+  --accent-hover: #2ea043;
+  --accent-soft: rgba(35, 134, 54, 0.15);
+  --link: #2f81f7;
+  --warn: #f85149;
+  --warn-soft: rgba(248, 81, 73, 0.12);
+  --btn-border: rgba(240, 246, 252, 0.1);
+  --font: -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans", Helvetica, Arial, sans-serif;
+  --mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
+  --cursor-x: 50vw;
+  --cursor-y: 30vh;
+  --radius: 6px;
 }
 
 * {
@@ -27,13 +37,292 @@ body,
 body {
   font-family: var(--font);
   color: var(--ink);
-  background:
-    radial-gradient(circle at top left, #e8f2ff 0%, transparent 42%),
-    linear-gradient(180deg, #eef2f5 0%, var(--bg) 45%, #e7edf2 100%);
+  background: var(--canvas);
+  -webkit-font-smoothing: antialiased;
+}
+
+#root {
+  position: relative;
+  z-index: 1;
 }
 
 button,
 input,
 select {
   font: inherit;
+  color: inherit;
+}
+
+::selection {
+  background: rgba(56, 139, 253, 0.35);
+}
+
+/* Primer-ish controls */
+.gh-input,
+.gh-select {
+  width: 100%;
+  border-radius: var(--radius);
+  border: 1px solid var(--line);
+  background: var(--bg);
+  color: var(--ink);
+  padding: 0.4rem 0.75rem;
+  outline: none;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+}
+
+.gh-input:focus,
+.gh-select:focus {
+  border-color: var(--link);
+  box-shadow: 0 0 0 3px rgba(31, 111, 235, 0.3);
+}
+
+.gh-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+  border-radius: var(--radius);
+  border: 1px solid var(--line);
+  background: var(--surface-2);
+  color: var(--ink);
+  padding: 0.4rem 0.9rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  line-height: 1.4;
+  cursor: pointer;
+  transition: background 0.12s ease, border-color 0.12s ease;
+}
+
+.gh-btn:hover:not(:disabled) {
+  background: #30363d;
+  border-color: #8b949e;
+}
+
+.gh-btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.gh-btn-primary {
+  background: var(--accent);
+  border-color: rgba(240, 246, 252, 0.1);
+  color: #fff;
+}
+
+.gh-btn-primary:hover:not(:disabled) {
+  background: var(--accent-hover);
+  border-color: rgba(240, 246, 252, 0.1);
+}
+
+.gh-btn-danger {
+  color: var(--warn);
+  border-color: rgba(248, 81, 73, 0.4);
+  background: var(--warn-soft);
+}
+
+.gh-btn-danger:hover:not(:disabled) {
+  background: rgba(248, 81, 73, 0.2);
+  border-color: var(--warn);
+}
+
+.gh-panel {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: rgba(22, 27, 34, 0.88);
+  backdrop-filter: blur(10px);
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.02);
+}
+
+.gh-link {
+  color: var(--link);
+  text-decoration: none;
+}
+
+.gh-link:hover {
+  text-decoration: underline;
+}
+
+.gh-badge {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 2em;
+  border: 1px solid var(--line);
+  background: var(--surface);
+  color: var(--muted);
+  font-size: 0.75rem;
+  padding: 0.15rem 0.55rem;
+}
+
+.gh-header {
+  border-bottom: 1px solid var(--line);
+  background: rgba(13, 17, 23, 0.72);
+  backdrop-filter: blur(12px);
+}
+
+.gh-nav-item {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  width: 100%;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--muted);
+  padding: 0.55rem 0.7rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  text-align: left;
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease, transform 0.15s ease;
+}
+
+.gh-nav-item:hover {
+  background: rgba(177, 186, 196, 0.12);
+  color: var(--ink);
+}
+
+.gh-nav-item-active {
+  background: rgba(56, 139, 253, 0.15);
+  color: var(--ink);
+  box-shadow: inset 3px 0 0 #f78166;
+}
+
+.gh-sidebar {
+  z-index: 30;
+}
+
+.page-frame {
+  position: relative;
+  min-height: 60vh;
+}
+
+.page-scan,
+.page-burst {
+  pointer-events: none;
+  position: absolute;
+  inset: -8% -4%;
+  z-index: 2;
+  opacity: 0;
+}
+
+.page-scan {
+  background: repeating-linear-gradient(
+    0deg,
+    transparent,
+    transparent 2px,
+    rgba(88, 166, 255, 0.08) 3px,
+    transparent 4px
+  );
+  mix-blend-mode: screen;
+}
+
+.page-burst {
+  background:
+    radial-gradient(circle at 20% 30%, rgba(63, 185, 80, 0.25), transparent 40%),
+    radial-gradient(circle at 80% 20%, rgba(88, 166, 255, 0.28), transparent 42%),
+    radial-gradient(circle at 50% 80%, rgba(163, 113, 247, 0.22), transparent 45%);
+  filter: blur(8px);
+}
+
+.page-enter {
+  animation: pageEnter 0.55s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.page-enter .page-scan {
+  animation: scanSweep 0.55s ease-out both;
+}
+
+.page-enter .page-burst {
+  animation: burstPop 0.55s ease-out both;
+}
+
+.page-exit {
+  animation: pageExit 0.32s ease-in both;
+}
+
+.page-exit .page-scan {
+  animation: scanSweep 0.32s ease-in both;
+}
+
+@keyframes pageEnter {
+  0% {
+    opacity: 0;
+    transform: translateY(28px) scale(0.96) rotateX(8deg);
+    filter: blur(10px) saturate(0.4);
+  }
+  55% {
+    opacity: 1;
+    filter: blur(0) saturate(1.2);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1) rotateX(0);
+    filter: none;
+  }
+}
+
+@keyframes pageExit {
+  0% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+    filter: none;
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-18px) scale(1.03) skewX(-2deg);
+    filter: blur(8px) hue-rotate(40deg);
+  }
+}
+
+@keyframes scanSweep {
+  0% {
+    opacity: 0.9;
+    transform: translateY(-40%);
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(40%);
+  }
+}
+
+@keyframes burstPop {
+  0% {
+    opacity: 0.85;
+    transform: scale(0.7);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(1.25);
+  }
+}
+
+@media (max-width: 860px) {
+  .gh-sidebar {
+    width: 72px !important;
+  }
+
+  .gh-nav-item span,
+  .gh-sidebar .truncate,
+  .gh-sidebar .gh-btn {
+    display: none;
+  }
+
+  .gh-nav-item {
+    justify-content: center;
+    padding: 0.7rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .gh-panel {
+    backdrop-filter: none;
+  }
+
+  .page-enter,
+  .page-exit,
+  .page-enter .page-scan,
+  .page-enter .page-burst,
+  .page-exit .page-scan {
+    animation: none !important;
+  }
 }

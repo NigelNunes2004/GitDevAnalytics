@@ -29,6 +29,7 @@ from app.schemas import (
     LanguageStat,
     LoginRequest,
     PRTurnaroundItem,
+    ProfileUpdate,
     RegisterRequest,
     RepoHealthScore,
     RepositoryOut,
@@ -59,6 +60,8 @@ def _user_out(user: User) -> UserOut:
     return UserOut(
         id=user.id,
         email=user.email,
+        display_name=user.display_name,
+        avatar_url=user.avatar_url,
         github_username=user.github_username,
         token_configured=bool(user.github_token_encrypted),
     )
@@ -131,12 +134,17 @@ def put_github_settings(
                 status_code=400,
                 detail="GitHub rejected this token. Check the PAT and try again.",
             )
+        gh_login = response.json().get("login")
     except HTTPException:
         raise
     except Exception as exc:
         raise HTTPException(status_code=400, detail=f"Could not verify token: {exc}") from exc
 
-    user.github_username = payload.github_username.strip()
+    if payload.github_username and payload.github_username.strip():
+        user.github_username = payload.github_username.strip()
+    elif isinstance(gh_login, str) and gh_login:
+        user.github_username = gh_login
+
     user.github_token_encrypted = encrypt_secret(payload.github_token.strip())
     db.add(user)
     db.commit()
@@ -146,6 +154,32 @@ def put_github_settings(
         token_configured=True,
         token_hint=mask_token(payload.github_token.strip()),
     )
+
+
+@router.put("/settings/profile", response_model=UserOut)
+def put_profile(
+    payload: ProfileUpdate,
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+) -> UserOut:
+    if payload.display_name is not None:
+        name = payload.display_name.strip()
+        user.display_name = name or None
+    if payload.github_username is not None:
+        uname = payload.github_username.strip()
+        user.github_username = uname or None
+    if payload.avatar_url is not None:
+        avatar = payload.avatar_url.strip()
+        if len(avatar) > 400_000:
+            raise HTTPException(
+                status_code=400,
+                detail="Avatar too large. Use a smaller image (under ~300KB) or an image URL.",
+            )
+        user.avatar_url = avatar or None
+    db.add(user)
+    db.commit()
+    db.refresh(user)
+    return _user_out(user)
 
 
 @router.post("/repos", response_model=list[RepositoryOut], status_code=status.HTTP_201_CREATED)

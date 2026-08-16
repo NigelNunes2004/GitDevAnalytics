@@ -166,6 +166,8 @@ class LoginRequest(BaseModel):
 class UserOut(BaseModel):
     id: int
     email: EmailStr
+    display_name: str | None = None
+    avatar_url: str | None = None
     github_username: str | None = None
     token_configured: bool = False
 
@@ -185,5 +187,12 @@ class GitHubSettingsOut(BaseModel):
 
 
 class GitHubSettingsUpdate(BaseModel):
-    github_username: str = Field(min_length=1, max_length=255)
     github_token: str = Field(min_length=8, max_length=200)
+    github_username: str | None = Field(default=None, max_length=255)
+
+
+class ProfileUpdate(BaseModel):
+    display_name: str | None = Field(default=None, max_length=255)
+    github_username: str | None = Field(default=None, max_length=255)
+    avatar_url: str | None = None
+
