@@ -8,46 +8,107 @@ type Props = {
   onLogout: () => void
 }
 
-const ITEMS: { id: AppPage; label: string; icon: 'grid' | 'repo' | 'compare' | 'gear' | 'user' }[] =
-  [
-    { id: 'dashboard', label: 'Dashboard', icon: 'grid' },
-    { id: 'repos', label: 'Repositories', icon: 'repo' },
-    { id: 'compare', label: 'Compare', icon: 'compare' },
-    { id: 'config', label: 'Configuration', icon: 'gear' },
-    { id: 'profile', label: 'Profile', icon: 'user' },
-  ]
+type IconKind =
+  | 'grid'
+  | 'repo'
+  | 'compare'
+  | 'shield'
+  | 'status'
+  | 'rocket'
+  | 'bell'
+  | 'box'
+  | 'flow'
+  | 'gear'
+  | 'user'
 
-function NavIcon({ kind }: { kind: (typeof ITEMS)[number]['icon'] }) {
+const ITEMS: { id: AppPage; label: string; icon: IconKind }[] = [
+  { id: 'dashboard', label: 'Dashboard', icon: 'grid' },
+  { id: 'repos', label: 'Repositories', icon: 'repo' },
+  { id: 'compare', label: 'Compare', icon: 'compare' },
+  { id: 'vulnerability', label: 'Vulnerability check', icon: 'shield' },
+  { id: 'status', label: 'Commit status', icon: 'status' },
+  { id: 'deployments', label: 'Deployments', icon: 'rocket' },
+  { id: 'notifications', label: 'Notifications', icon: 'bell' },
+  { id: 'packages', label: 'Packages', icon: 'box' },
+  { id: 'workflows', label: 'Workflows', icon: 'flow' },
+  { id: 'config', label: 'Configuration', icon: 'gear' },
+  { id: 'profile', label: 'Profile', icon: 'user' },
+]
+
+function NavIcon({ kind }: { kind: IconKind }) {
+  const common = 'fill-current'
   if (kind === 'grid') {
     return (
-      <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden className="fill-current">
+      <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden className={common}>
         <path d="M1.5 1.5h5v5h-5v-5zm8 0h5v5h-5v-5zm-8 8h5v5h-5v-5zm8 0h5v5h-5v-5z" />
       </svg>
     )
   }
   if (kind === 'repo') {
     return (
-      <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden className="fill-current">
-        <path d="M2 2.5A2.5 2.5 0 014.5 0h8.75a.75.75 0 01.75.75v12.5a.75.75 0 01-.75.75h-2.5a.75.75 0 110-1.5h1.75v-2h-8a1 1 0 00-.714 1.7.75.75 0 01-1.072 1.05A2.495 2.495 0 012 11.5zm10.5-1.5h-8a1 1 0 00-1 1v6.708A2.486 2.486 0 014.5 9h8.75zM4.5 11.5a1.5 1.5 0 00-1.5 1.5v.25c0 .138.112.25.25.25h5.5a.25.25 0 00.25-.25V13a1.5 1.5 0 00-1.5-1.5z" />
+      <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden className={common}>
+        <path d="M2 2.5A2.5 2.5 0 014.5 0h8.75a.75.75 0 01.75.75v12.5a.75.75 0 01-.75.75h-2.5a.75.75 0 110-1.5h1.75v-2h-8a1 1 0 00-.714 1.7.75.75 0 01-1.072 1.05A2.495 2.495 0 012 11.5zm10.5-1.5h-8a1 1 0 00-1 1v6.708A2.486 2.486 0 014.5 9h8.75z" />
       </svg>
     )
   }
   if (kind === 'compare') {
     return (
-      <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden className="fill-current">
-        <path d="M5.06 3.5a.75.75 0 00-1.12-1L1.5 5.44a.75.75 0 000 1.12l2.44 2.94a.75.75 0 001.12-1L3.56 6.5h8.88l-1.5 1.94a.75.75 0 001.12 1l2.44-2.94a.75.75 0 000-1.12L12.06 2.5a.75.75 0 10-1.12 1L12.44 5.5H3.56zM3.5 12.5h9a.75.75 0 010 1.5h-9a.75.75 0 010-1.5z" />
+      <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden className={common}>
+        <path d="M5.06 3.5a.75.75 0 00-1.12-1L1.5 5.44a.75.75 0 000 1.12l2.44 2.94a.75.75 0 001.12-1L3.56 6.5h8.88l-1.5 1.94a.75.75 0 001.12 1l2.44-2.94a.75.75 0 000-1.12L12.06 2.5a.75.75 0 10-1.12 1L12.44 5.5H3.56z" />
+      </svg>
+    )
+  }
+  if (kind === 'shield') {
+    return (
+      <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden className={common}>
+        <path d="M8 1l6 2v5c0 3.5-2.5 5.8-6 7-3.5-1.2-6-3.5-6-7V3l6-2z" />
+      </svg>
+    )
+  }
+  if (kind === 'status') {
+    return (
+      <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden className={common}>
+        <path d="M8 0a8 8 0 100 16A8 8 0 008 0zm3.5 5.5L7 10 4.5 7.5l1-1L7 8l3.5-3.5 1 1z" />
+      </svg>
+    )
+  }
+  if (kind === 'rocket') {
+    return (
+      <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden className={common}>
+        <path d="M14.5 1.5c-3 0-6 2-8 4L3 9l-2 5 5-2 3.5-3.5c2-2 4-5 4-8zM6 10l-1 3 3-1 2.5-2.5L6 10z" />
+      </svg>
+    )
+  }
+  if (kind === 'bell') {
+    return (
+      <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden className={common}>
+        <path d="M8 1a4 4 0 014 4v2.5l1.5 2H2.5L4 7.5V5a4 4 0 014-4zm0 14a2 2 0 002-2H6a2 2 0 002 2z" />
+      </svg>
+    )
+  }
+  if (kind === 'box') {
+    return (
+      <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden className={common}>
+        <path d="M8 1L1 4v8l7 3 7-3V4L8 1zm0 2.2L13 5 8 7 3 5l5-1.8zM3 6.5l4.5 1.8V14L3 12V6.5zm5.5 9.5V8.3L13 6.5V12l-4.5 4z" />
+      </svg>
+    )
+  }
+  if (kind === 'flow') {
+    return (
+      <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden className={common}>
+        <path d="M3 2h4v3H3V2zm6 0h4v3H9V2zM3 7h4v3H3V7zm6 4h4v3H9v-3zM5 5v2h2V5H5zm4 5v2h2v-2H9z" />
       </svg>
     )
   }
   if (kind === 'gear') {
     return (
-      <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden className="fill-current">
+      <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden className={common}>
         <path d="M8 4.75a3.25 3.25 0 100 6.5 3.25 3.25 0 000-6.5zM1.5 8a6.5 6.5 0 1113 0 6.5 6.5 0 01-13 0z" />
       </svg>
     )
   }
   return (
-    <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden className="fill-current">
+    <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden className={common}>
       <path d="M8 8a3 3 0 100-6 3 3 0 000 6zm-5.5 6.5A5.5 5.5 0 018 9a5.5 5.5 0 015.5 5.5.75.75 0 01-.75.75h-9.5a.75.75 0 01-.75-.75z" />
     </svg>
   )
@@ -66,7 +127,7 @@ export function Sidebar({ page, onNavigate, userLabel, avatarUrl, onLogout }: Pr
         </div>
       </div>
 
-      <nav className="flex flex-1 flex-col gap-1 p-2" aria-label="Main">
+      <nav className="flex flex-1 flex-col gap-1 overflow-y-auto p-2" aria-label="Main">
         {ITEMS.map((item) => {
           const active = page === item.id
           return (

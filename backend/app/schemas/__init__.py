@@ -196,3 +196,122 @@ class ProfileUpdate(BaseModel):
     github_username: str | None = Field(default=None, max_length=255)
     avatar_url: str | None = None
 
+
+class VulnerabilityFindingOut(BaseModel):
+    id: int
+    repo: str
+    source: str
+    rule_id: str
+    severity: str
+    title: str
+    detail: str | None = None
+    path: str | None = None
+    html_url: str | None = None
+    remediation: str | None = None
+    scanned_at: datetime
+
+    model_config = {"from_attributes": True}
+
+
+class VulnScanRepoResult(BaseModel):
+    repo: str
+    findings_count: int
+    rate_limit_remaining: int | None = None
+
+
+class VulnScanResponse(BaseModel):
+    results: list[VulnScanRepoResult]
+    findings: list[VulnerabilityFindingOut]
+
+
+class CommitStatusOut(BaseModel):
+    context: str
+    state: str
+    description: str | None = None
+    target_url: str | None = None
+    created_at: datetime | None = None
+
+
+class CommitDiffOut(BaseModel):
+    sha: str
+    message: str
+    author: str | None = None
+    html_url: str | None = None
+    additions: int = 0
+    deletions: int = 0
+    total: int = 0
+    committed_at: datetime | None = None
+
+
+class CommitStatusSummary(BaseModel):
+    repo: str
+    ref: str
+    state: str
+    sha: str
+    message: str | None = None
+    author: str | None = None
+    html_url: str | None = None
+    additions: int = 0
+    deletions: int = 0
+    total_count: int
+    statuses: list[CommitStatusOut]
+    recent_commits: list[CommitDiffOut] = []
+    rate_limit_remaining: int | None = None
+
+
+class DeploymentOut(BaseModel):
+    id: int
+    environment: str
+    ref: str
+    sha: str
+    task: str
+    description: str | None = None
+    created_at: datetime | None = None
+    latest_state: str | None = None
+    latest_description: str | None = None
+    latest_url: str | None = None
+
+
+class NotificationOut(BaseModel):
+    id: str
+    reason: str
+    unread: bool
+    updated_at: datetime | None = None
+    repo: str | None = None
+    title: str
+    type: str
+    url: str | None = None
+    latest_comment_url: str | None = None
+
+
+class PackageOut(BaseModel):
+    id: int
+    name: str
+    package_type: str
+    visibility: str
+    html_url: str | None = None
+    created_at: datetime | None = None
+    updated_at: datetime | None = None
+
+
+class WorkflowTemplateOut(BaseModel):
+    id: str
+    name: str
+    description: str
+    path: str
+    content: str
+
+
+class WorkflowTemplateApplyRequest(BaseModel):
+    repo: str = Field(min_length=3, max_length=512)
+    template_id: str = Field(min_length=1, max_length=64)
+
+
+class WorkflowTemplateApplyResult(BaseModel):
+    repo: str
+    branch: str
+    path: str
+    pr_number: int | None = None
+    pr_url: str | None = None
+    message: str
+

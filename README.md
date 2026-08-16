@@ -47,6 +47,8 @@ flowchart LR
 8. Background refresh with APScheduler
 9. Dockerized local stack + CI pipeline
 10. Email/password JWT auth with per-user GitHub username + PAT in Settings
+11. **Vulnerability check** — DIY secret/env leak heuristics + optional Dependabot / secret-scanning alerts
+12. Commit statuses, deployments timeline, notifications inbox, GitHub Packages, workflow template PRs, GitHub profile import
 
 ## Quick start (local)
 
@@ -95,7 +97,7 @@ npm install
 npm run dev
 ```
 
-Open [http://localhost:5173](http://localhost:5173). Register an account, open **Settings**, save your GitHub username + PAT, then track/sync repos.
+Open [http://localhost:5173](http://localhost:5173). Register an account, open **Configuration**, save your GitHub PAT, set username under **Profile**, then track/sync repos. Use **Vulnerability check** to scan for committed secrets and dependency alerts.
 
 JWT is stored in `localStorage` (fine for a portfolio demo; XSS can steal it — keep deps patched).
 
@@ -123,6 +125,15 @@ docker compose up --build
 | GET | `/repos` | List tracked repos (JWT) |
 | POST | `/sync` | Sync with **current user’s** PAT (JWT) |
 | POST | `/repos/{id}/sync` | Sync one repo (JWT) |
+| POST | `/vuln/scan?repo=` | Hybrid vulnerability scan (JWT + user PAT) |
+| GET | `/vuln/findings?repo=` | Stored scan findings (JWT) |
+| GET | `/github/commit-status?repo=&ref=` | Combined commit statuses (`repo:status`) |
+| GET | `/github/deployments?repo=` | Deployments timeline (`repo_deployment`) |
+| GET | `/github/notifications` | Notification inbox (`notifications`) |
+| GET | `/github/packages?package_type=` | GitHub Packages (`read:packages`) |
+| GET | `/github/workflow-templates` | List starter workflow templates |
+| POST | `/github/workflow-templates/apply` | Open PR adding a workflow (`workflow`) |
+| POST | `/settings/profile/from-github` | Import profile from `GET /user` (`read:user`) |
 | GET | `/stats/commits?repo=&period=day\|week` | Commits over time |
 | GET | `/stats/pr-turnaround?repo=` | Merged PR hours/days |
 | GET | `/stats/contributors?repo=` | Commits per author |
@@ -145,6 +156,7 @@ Secrets never belong in source control. The same variable **names** are used eve
 
 **Auth model:** passwords are bcrypt-hashed; each user’s GitHub PAT is Fernet-encrypted at rest and never returned in full after save. Interactive Sync uses the logged-in user’s PAT. Webhooks still use the server `GITHUB_TOKEN` (global/advanced).
 
+**Vulnerability check:** hybrid static scan (not a security guarantee). DIY path/content heuristics catch committed `.env` / keys / PATs (matches are redacted). Dependabot and secret-scanning alerts are best-effort and need repo features + PAT scopes (`security_events` or fine-grained Dependabot/secret-scanning read). Large repos are capped to protect GitHub rate limits.
 **Why this matters:** swapping local Postgres for Supabase is a connection-string change only. The app code always reads `DATABASE_URL`.
 
 ### Supabase `DATABASE_URL` tip

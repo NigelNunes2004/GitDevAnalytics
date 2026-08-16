@@ -22,14 +22,18 @@ from app.core.security import (
 from app.models import TrackedRepository, User
 from app.schemas import (
     CommitCountPoint,
+    CommitStatusSummary,
     CompareResponse,
     ContributorStat,
+    DeploymentOut,
     GitHubSettingsOut,
     GitHubSettingsUpdate,
     LanguageStat,
     LoginRequest,
-    PRTurnaroundItem,
+    NotificationOut,
+    PackageOut,
     ProfileUpdate,
+    PRTurnaroundItem,
     RegisterRequest,
     RepoHealthScore,
     RepositoryOut,
@@ -40,15 +44,22 @@ from app.schemas import (
     TrackReposRequest,
     UptimeSummary,
     UserOut,
+    VulnerabilityFindingOut,
+    VulnScanResponse,
     WebhookAck,
     WorkflowRunOut,
+    WorkflowTemplateApplyRequest,
+    WorkflowTemplateApplyResult,
+    WorkflowTemplateOut,
 )
 from app.services import (
     export_service,
+    github_extras_service,
     insights_service,
     stats_service,
     sync_service,
     uptime_service,
+    vuln_service,
     webhook_service,
 )
 from app.services.github_client import GitHubRateLimitError
@@ -387,6 +398,177 @@ def uptime(
     _user: User = Depends(get_current_user),
 ) -> UptimeSummary:
     return uptime_service.uptime_summary(db)
+
+
+@router.post("/vuln/scan", response_model=VulnScanResponse)
+def vuln_scan(
+    repo: str | None = Query(None),
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+) -> VulnScanResponse:
+    _ensure_repo(db, user.id, repo)
+    token = get_user_github_token(user)
+    try:
+        return vuln_service.scan_repositories(db, user, token, repo=repo)
+    except GitHubRateLimitError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail=str(exc),
+            headers={"Retry-After": str(max(1, (exc.reset_at or 0)))},
+        ) from exc
+    except ValueError as exc:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
+
+
+@router.get("/vuln/findings", response_model=list[VulnerabilityFindingOut])
+def vuln_findings(
+    repo: str | None = Query(None),
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+) -> list[VulnerabilityFindingOut]:
+    _ensure_repo(db, user.id, repo)
+    return vuln_service.list_findings(db, user.id, repo=repo)
+
+
+@router.get("/github/commit-status", response_model=CommitStatusSummary)
+def github_commit_status(
+    repo: str = Query(..., min_length=3),
+    ref: str | None = Query(None),
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+) -> CommitStatusSummary:
+    _ensure_repo(db, user.id, repo)
+    token = get_user_github_token(user)
+    try:
+        return github_extras_service.commit_statuses(db, user, token, repo, ref=ref)
+    except GitHubRateLimitError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail=str(exc)
+        ) from exc
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    except Exception as exc:
+        raise HTTPException(
+            status_code=502,
+            detail=f"Could not load commit statuses (need repo:status?): {exc}",
+        ) from exc
+
+
+@router.get("/github/deployments", response_model=list[DeploymentOut])
+def github_deployments(
+    repo: str = Query(..., min_length=3),
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+) -> list[DeploymentOut]:
+    _ensure_repo(db, user.id, repo)
+    token = get_user_github_token(user)
+    try:
+        return github_extras_service.deployments(db, user, token, repo)
+    except GitHubRateLimitError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail=str(exc)
+        ) from exc
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    except Exception as exc:
+        raise HTTPException(
+            status_code=502,
+            detail=f"Could not load deployments (need repo_deployment?): {exc}",
+        ) from exc
+
+
+@router.get("/github/notifications", response_model=list[NotificationOut])
+def github_notifications(
+    include_read: bool = Query(False),
+    user: User = Depends(get_current_user),
+) -> list[NotificationOut]:
+    token = get_user_github_token(user)
+    try:
+        return github_extras_service.notifications(
+            token, all_notifications=include_read
+        )
+    except GitHubRateLimitError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail=str(exc)
+        ) from exc
+    except Exception as exc:
+        raise HTTPException(
+            status_code=502,
+            detail=f"Could not load notifications (need notifications scope?): {exc}",
+        ) from exc
+
+
+@router.post("/settings/profile/from-github", response_model=UserOut)
+def profile_from_github(
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+) -> UserOut:
+    token = get_user_github_token(user)
+    try:
+        updated = github_extras_service.enrich_profile_from_github(db, user, token)
+    except GitHubRateLimitError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail=str(exc)
+        ) from exc
+    except Exception as exc:
+        raise HTTPException(
+            status_code=502,
+            detail=f"Could not load GitHub profile (need read:user?): {exc}",
+        ) from exc
+    return _user_out(updated)
+
+
+@router.get("/github/packages", response_model=list[PackageOut])
+def github_packages(
+    package_type: str = Query("npm"),
+    user: User = Depends(get_current_user),
+) -> list[PackageOut]:
+    token = get_user_github_token(user)
+    try:
+        return github_extras_service.list_packages(token, package_type=package_type)
+    except GitHubRateLimitError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail=str(exc)
+        ) from exc
+    except Exception as exc:
+        raise HTTPException(
+            status_code=502,
+            detail=f"Could not load packages (need read:packages?): {exc}",
+        ) from exc
+
+
+@router.get("/github/workflow-templates", response_model=list[WorkflowTemplateOut])
+def workflow_templates(
+    _user: User = Depends(get_current_user),
+) -> list[WorkflowTemplateOut]:
+    return github_extras_service.list_workflow_templates()
+
+
+@router.post("/github/workflow-templates/apply", response_model=WorkflowTemplateApplyResult)
+def apply_workflow_template(
+    payload: WorkflowTemplateApplyRequest,
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+) -> WorkflowTemplateApplyResult:
+    _ensure_repo(db, user.id, payload.repo)
+    token = get_user_github_token(user)
+    try:
+        return github_extras_service.apply_workflow_template(
+            db, user, token, payload.repo, payload.template_id
+        )
+    except GitHubRateLimitError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail=str(exc)
+        ) from exc
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    except Exception as exc:
+        raise HTTPException(
+            status_code=502,
+            detail=(
+                f"Could not open workflow PR (need `workflow` + contents write): {exc}"
+            ),
+        ) from exc
 
 
 @router.post("/webhooks/github", response_model=WebhookAck)

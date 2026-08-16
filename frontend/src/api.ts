@@ -182,6 +182,112 @@ export type UptimeSummary = {
   }>
 }
 
+export type VulnerabilityFinding = {
+  id: number
+  repo: string
+  source: string
+  rule_id: string
+  severity: string
+  title: string
+  detail: string | null
+  path: string | null
+  html_url: string | null
+  remediation: string | null
+  scanned_at: string
+}
+
+export type VulnScanResponse = {
+  results: Array<{
+    repo: string
+    findings_count: number
+    rate_limit_remaining: number | null
+  }>
+  findings: VulnerabilityFinding[]
+}
+
+export type CommitStatusSummary = {
+  repo: string
+  ref: string
+  state: string
+  sha: string
+  message: string | null
+  author: string | null
+  html_url: string | null
+  additions: number
+  deletions: number
+  total_count: number
+  statuses: Array<{
+    context: string
+    state: string
+    description: string | null
+    target_url: string | null
+    created_at: string | null
+  }>
+  recent_commits: Array<{
+    sha: string
+    message: string
+    author: string | null
+    html_url: string | null
+    additions: number
+    deletions: number
+    total: number
+    committed_at: string | null
+  }>
+  rate_limit_remaining: number | null
+}
+
+export type DeploymentItem = {
+  id: number
+  environment: string
+  ref: string
+  sha: string
+  task: string
+  description: string | null
+  created_at: string | null
+  latest_state: string | null
+  latest_description: string | null
+  latest_url: string | null
+}
+
+export type NotificationItem = {
+  id: string
+  reason: string
+  unread: boolean
+  updated_at: string | null
+  repo: string | null
+  title: string
+  type: string
+  url: string | null
+  latest_comment_url: string | null
+}
+
+export type PackageItem = {
+  id: number
+  name: string
+  package_type: string
+  visibility: string
+  html_url: string | null
+  created_at: string | null
+  updated_at: string | null
+}
+
+export type WorkflowTemplate = {
+  id: string
+  name: string
+  description: string
+  path: string
+  content: string
+}
+
+export type WorkflowApplyResult = {
+  repo: string
+  branch: string
+  path: string
+  pr_number: number | null
+  pr_url: string | null
+  message: string
+}
+
 export const api = {
   register: (email: string, password: string) =>
     request<AuthResponse>('/auth/register', {
@@ -238,6 +344,28 @@ export const api = {
   compare: (repoA: string, repoB: string) =>
     request<CompareResponse>(`/stats/compare${qs({ repo_a: repoA, repo_b: repoB })}`),
   uptime: () => request<UptimeSummary>('/uptime'),
+  vulnFindings: (repo?: string) =>
+    request<VulnerabilityFinding[]>(`/vuln/findings${qs({ repo })}`),
+  vulnScan: (repo?: string) =>
+    request<VulnScanResponse>(`/vuln/scan${qs({ repo })}`, { method: 'POST' }),
+  commitStatus: (repo: string, ref?: string) =>
+    request<CommitStatusSummary>(`/github/commit-status${qs({ repo, ref })}`),
+  deployments: (repo: string) =>
+    request<DeploymentItem[]>(`/github/deployments${qs({ repo })}`),
+  notifications: (includeRead = false) =>
+    request<NotificationItem[]>(
+      `/github/notifications${qs({ include_read: includeRead ? 'true' : undefined })}`,
+    ),
+  packages: (package_type = 'npm') =>
+    request<PackageItem[]>(`/github/packages${qs({ package_type })}`),
+  enrichProfileFromGitHub: () =>
+    request<User>('/settings/profile/from-github', { method: 'POST' }),
+  workflowTemplates: () => request<WorkflowTemplate[]>('/github/workflow-templates'),
+  applyWorkflowTemplate: (repo: string, template_id: string) =>
+    request<WorkflowApplyResult>('/github/workflow-templates/apply', {
+      method: 'POST',
+      body: JSON.stringify({ repo, template_id }),
+    }),
   downloadExport: async (format: 'json' | 'csv', repo?: string) => {
     const headers: Record<string, string> = {}
     const token = getToken()

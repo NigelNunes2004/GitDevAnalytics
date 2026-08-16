@@ -49,6 +49,24 @@ export function ProfilePage({ user, onUserUpdated }: Props) {
     reader.readAsDataURL(file)
   }
 
+  async function handleImportGitHub() {
+    setBusy(true)
+    setError('')
+    setStatus('')
+    try {
+      const updated = await api.enrichProfileFromGitHub()
+      onUserUpdated(updated)
+      setDisplayName(updated.display_name ?? '')
+      setGithubUsername(updated.github_username ?? '')
+      setAvatarUrl(updated.avatar_url ?? '')
+      setStatus('Imported name, username, and avatar from GitHub.')
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Import failed')
+    } finally {
+      setBusy(false)
+    }
+  }
+
   return (
     <div className="space-y-5">
       <header>
@@ -59,6 +77,20 @@ export function ProfilePage({ user, onUserUpdated }: Props) {
       </header>
 
       <section className="gh-panel max-w-xl p-5">
+        <div className="mb-4">
+          <button
+            type="button"
+            className="gh-btn"
+            disabled={busy || !user.token_configured}
+            onClick={handleImportGitHub}
+          >
+            Import from GitHub
+          </button>
+          <p className="mt-2 mb-0 text-xs text-[var(--muted)]">
+            Uses <code className="font-[var(--mono)]">GET /user</code> (needs{' '}
+            <code className="font-[var(--mono)]">read:user</code>).
+          </p>
+        </div>
         <form onSubmit={handleSave} className="space-y-4">
           <div className="flex items-center gap-4">
             {avatarUrl ? (

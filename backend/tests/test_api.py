@@ -184,3 +184,57 @@ def test_settings_save_masks_token(client, auth_headers):
     assert body["token_hint"] is not None
     assert "secret_token_value" not in body["token_hint"]
     assert "ghp_secret_token_value" not in str(body)
+
+
+def test_vuln_scan_diy_and_dependabot_soft_fail(client, auth_headers, db_session):
+    from app.core.security import encrypt_secret
+    from app.models import User
+
+    # Persist a PAT so get_user_github_token succeeds
+    me = client.get("/auth/me", headers=auth_headers).json()
+    user = db_session.get(User, me["id"])
+    assert user is not None
+    user.github_token_encrypted = encrypt_secret("ghp_test_token_value_xx")
+    db_session.add(user)
+    db_session.commit()
+
+    client.post("/repos", json={"repos": ["acme/demo"]}, headers=auth_headers)
+
+    fake = MagicMock()
+    fake.last_remaining = 4999
+    fake.fetch_repo_meta.return_value = {"default_branch": "main"}
+    fake._paginate.return_value = [
+        {"sha": "abc", "commit": {"tree": {"sha": "treesha"}}}
+    ]
+    fake.fetch_git_tree.return_value = [
+        {"type": "blob", "path": ".env", "size": 20},
+        {"type": "blob", "path": "README.md", "size": 10},
+    ]
+    fake.fetch_file_text.side_effect = lambda owner, repo, path, ref: (
+        "SECRET=ghp_abcdefghijklmnopqrstuvwxyz012345" if path == ".env" else None
+    )
+    fake.fetch_dependabot_alerts.return_value = ("forbidden", [])
+    fake.fetch_secret_scanning_alerts.return_value = ("forbidden", [])
+
+    with patch("app.services.vuln_service.GitHubClient", return_value=fake):
+        response = client.post(
+            "/vuln/scan",
+            params={"repo": "acme/demo"},
+            headers=auth_headers,
+        )
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["results"][0]["repo"] == "acme/demo"
+    severities = {f["severity"] for f in body["findings"]}
+    assert "critical" in severities
+    assert any(f["rule_id"] == "path_dotenv" for f in body["findings"])
+    assert any(f["rule_id"] == "dependabot_unavailable" for f in body["findings"])
+    # Secrets redacted
+    assert all(
+        "ghp_abcdefghijklmnopqrstuvwxyz012345" not in (f.get("detail") or "")
+        for f in body["findings"]
+    )
+    listed = client.get("/vuln/findings", params={"repo": "acme/demo"}, headers=auth_headers)
+    assert listed.status_code == 200
+    assert len(listed.json()) >= 1

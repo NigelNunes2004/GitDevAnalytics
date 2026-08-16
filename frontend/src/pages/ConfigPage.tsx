@@ -65,7 +65,14 @@ export function ConfigPage({ user, onUserUpdated }: Props) {
 
         <p className="m-0 text-sm text-[var(--muted)]">
           Classic PAT scopes: <code className="font-[var(--mono)]">public_repo</code> or{' '}
-          <code className="font-[var(--mono)]">repo</code> for private repos.
+          <code className="font-[var(--mono)]">repo</code> for private repos. Optional add-ons:{' '}
+          <code className="font-[var(--mono)]">security_events</code> (vuln alerts),{' '}
+          <code className="font-[var(--mono)]">repo:status</code>,{' '}
+          <code className="font-[var(--mono)]">repo_deployment</code>,{' '}
+          <code className="font-[var(--mono)]">notifications</code>,{' '}
+          <code className="font-[var(--mono)]">read:user</code>,{' '}
+          <code className="font-[var(--mono)]">read:packages</code>,{' '}
+          <code className="font-[var(--mono)]">workflow</code> (open workflow PRs).
         </p>
 
         <form onSubmit={handleSave} className="space-y-3">

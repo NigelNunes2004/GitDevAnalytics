@@ -24,8 +24,14 @@ import type { AppPage } from './nav'
 import { ComparePage } from './pages/ComparePage'
 import { ConfigPage } from './pages/ConfigPage'
 import { DashboardPage } from './pages/DashboardPage'
+import { DeploymentsPage } from './pages/DeploymentsPage'
+import { NotificationsPage } from './pages/NotificationsPage'
+import { PackagesPage } from './pages/PackagesPage'
 import { ProfilePage } from './pages/ProfilePage'
 import { ReposPage } from './pages/ReposPage'
+import { StatusPage } from './pages/StatusPage'
+import { VulnerabilityPage } from './pages/VulnerabilityPage'
+import { WorkflowsPage } from './pages/WorkflowsPage'
 
 function App() {
   const [user, setUser] = useState<User | null>(null)
@@ -281,6 +287,41 @@ function App() {
         error={error}
         onChangeA={setCompareRepoA}
         onChangeB={setCompareRepoB}
+      />
+    )
+  } else if (page === 'vulnerability') {
+    pageContent = (
+      <VulnerabilityPage repos={repos} tokenConfigured={user.token_configured} />
+    )
+  } else if (page === 'status') {
+    pageContent = (
+      <StatusPage
+        repos={repos}
+        tokenConfigured={user.token_configured}
+        selectedRepo={selectedRepo}
+        onSelectRepo={setSelectedRepo}
+      />
+    )
+  } else if (page === 'deployments') {
+    pageContent = (
+      <DeploymentsPage
+        repos={repos}
+        tokenConfigured={user.token_configured}
+        selectedRepo={selectedRepo}
+        onSelectRepo={setSelectedRepo}
+      />
+    )
+  } else if (page === 'notifications') {
+    pageContent = <NotificationsPage tokenConfigured={user.token_configured} />
+  } else if (page === 'packages') {
+    pageContent = <PackagesPage tokenConfigured={user.token_configured} />
+  } else if (page === 'workflows') {
+    pageContent = (
+      <WorkflowsPage
+        repos={repos}
+        tokenConfigured={user.token_configured}
+        selectedRepo={selectedRepo}
+        onSelectRepo={setSelectedRepo}
       />
     )
   } else if (page === 'config') {

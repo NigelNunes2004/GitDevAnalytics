@@ -6,6 +6,7 @@ from app.models.entities import (
     TrackedRepository,
     UptimeCheck,
     User,
+    VulnerabilityFinding,
     WorkflowRun,
 )
 
@@ -18,4 +19,5 @@ __all__ = [
     "WorkflowRun",
     "RepoLanguage",
     "UptimeCheck",
+    "VulnerabilityFinding",
 ]

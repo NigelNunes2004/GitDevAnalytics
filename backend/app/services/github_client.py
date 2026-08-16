@@ -8,6 +8,7 @@ briefly or surface a clear error instead of crashing the sync.
 
 from __future__ import annotations
 
+import base64
 import logging
 import time
 from datetime import datetime, timezone
@@ -100,6 +101,32 @@ class GitHubClient:
 
         raise RuntimeError("GitHub request failed after retries")
 
+    def _request_soft(
+        self, method: str, url: str, params: dict[str, Any] | None = None
+    ) -> tuple[int, Any]:
+        """Like _request but returns (status_code, body) without raising on 403/404."""
+        with httpx.Client(timeout=30.0, headers=self._headers()) as client:
+            response = client.request(method, url, params=params)
+            self._update_rate_limit(response)
+            if response.status_code == 429 or (
+                response.status_code == 403
+                and response.headers.get("X-RateLimit-Remaining") == "0"
+            ):
+                reset_header = response.headers.get("X-RateLimit-Reset")
+                reset_at = int(reset_header) if reset_header else None
+                raise GitHubRateLimitError(
+                    "GitHub API rate limit exceeded. Try again after the reset window.",
+                    reset_at=reset_at,
+                )
+            if response.status_code in (403, 404):
+                try:
+                    body = response.json()
+                except Exception:
+                    body = None
+                return response.status_code, body
+            response.raise_for_status()
+            return response.status_code, response.json()
+
     def _paginate(
         self, path: str, params: dict[str, Any] | None = None, max_pages: int = 5
     ) -> list[dict]:
@@ -153,6 +180,221 @@ class GitHubClient:
             params={"per_page": 50},
             max_pages=1,
         )
+
+    def fetch_repo_meta(self, owner: str, repo: str) -> dict:
+        data = self._request("GET", f"{GITHUB_API}/repos/{owner}/{repo}")
+        return data if isinstance(data, dict) else {}
+
+    def fetch_git_tree(self, owner: str, repo: str, tree_sha: str) -> list[dict]:
+        data = self._request(
+            "GET",
+            f"{GITHUB_API}/repos/{owner}/{repo}/git/trees/{tree_sha}",
+            params={"recursive": "1"},
+        )
+        if isinstance(data, dict):
+            tree = data.get("tree") or []
+            return tree if isinstance(tree, list) else []
+        return []
+
+    def fetch_file_text(self, owner: str, repo: str, path: str, ref: str) -> str | None:
+        """Fetch decoded file text via Contents API. Returns None if missing/binary/too large."""
+        status, data = self._request_soft(
+            "GET",
+            f"{GITHUB_API}/repos/{owner}/{repo}/contents/{path.lstrip('/')}",
+            params={"ref": ref},
+        )
+        if status != 200 or not isinstance(data, dict):
+            return None
+        if data.get("type") != "file":
+            return None
+        size = int(data.get("size") or 0)
+        if size > 100_000:
+            return None
+
+        encoded = data.get("content")
+        if not isinstance(encoded, str):
+            return None
+        try:
+            raw = base64.b64decode(encoded.replace("\n", ""))
+            return raw.decode("utf-8", errors="replace")
+        except Exception:
+            return None
+
+    def fetch_dependabot_alerts(
+        self, owner: str, repo: str
+    ) -> tuple[str, list[dict]]:
+        """Returns (status_kind, alerts). status_kind: ok | forbidden | not_found | error."""
+        status, data = self._request_soft(
+            "GET",
+            f"{GITHUB_API}/repos/{owner}/{repo}/dependabot/alerts",
+            params={"state": "open", "per_page": 50},
+        )
+        if status == 200 and isinstance(data, list):
+            return "ok", data
+        if status == 403:
+            return "forbidden", []
+        if status == 404:
+            return "not_found", []
+        return "error", []
+
+    def fetch_secret_scanning_alerts(
+        self, owner: str, repo: str
+    ) -> tuple[str, list[dict]]:
+        status, data = self._request_soft(
+            "GET",
+            f"{GITHUB_API}/repos/{owner}/{repo}/secret-scanning/alerts",
+            params={"state": "open", "per_page": 50},
+        )
+        if status == 200 and isinstance(data, list):
+            return "ok", data
+        if status == 403:
+            return "forbidden", []
+        if status == 404:
+            return "not_found", []
+        return "error", []
+
+    def fetch_combined_status(self, owner: str, repo: str, ref: str) -> dict:
+        data = self._request(
+            "GET", f"{GITHUB_API}/repos/{owner}/{repo}/commits/{ref}/status"
+        )
+        return data if isinstance(data, dict) else {}
+
+    def fetch_commit(self, owner: str, repo: str, ref: str) -> dict:
+        """Single commit including message and stats (additions/deletions)."""
+        data = self._request("GET", f"{GITHUB_API}/repos/{owner}/{repo}/commits/{ref}")
+        return data if isinstance(data, dict) else {}
+
+    def fetch_commits_on_ref(
+        self, owner: str, repo: str, ref: str, per_page: int = 10
+    ) -> list[dict]:
+        return self._paginate(
+            f"/repos/{owner}/{repo}/commits",
+            params={"sha": ref, "per_page": per_page},
+            max_pages=1,
+        )
+
+    def fetch_commit_statuses(
+        self, owner: str, repo: str, ref: str, per_page: int = 30
+    ) -> list[dict]:
+        return self._paginate(
+            f"/repos/{owner}/{repo}/commits/{ref}/statuses",
+            params={"per_page": per_page},
+            max_pages=1,
+        )
+
+    def fetch_deployments(self, owner: str, repo: str, per_page: int = 20) -> list[dict]:
+        return self._paginate(
+            f"/repos/{owner}/{repo}/deployments",
+            params={"per_page": per_page},
+            max_pages=1,
+        )
+
+    def fetch_deployment_statuses(
+        self, owner: str, repo: str, deployment_id: int
+    ) -> list[dict]:
+        return self._paginate(
+            f"/repos/{owner}/{repo}/deployments/{deployment_id}/statuses",
+            params={"per_page": 20},
+            max_pages=1,
+        )
+
+    def fetch_notifications(self, all_notifications: bool = False) -> list[dict]:
+        return self._paginate(
+            "/notifications",
+            params={"all": "true" if all_notifications else "false", "per_page": 50},
+            max_pages=2,
+        )
+
+    def fetch_authenticated_user(self) -> dict:
+        data = self._request("GET", f"{GITHUB_API}/user")
+        return data if isinstance(data, dict) else {}
+
+    def fetch_user_packages(self, package_type: str = "npm", per_page: int = 30) -> list[dict]:
+        status, data = self._request_soft(
+            "GET",
+            f"{GITHUB_API}/user/packages",
+            params={"package_type": package_type, "per_page": per_page},
+        )
+        if status == 200 and isinstance(data, list):
+            return data
+        return []
+
+    def create_or_update_file(
+        self,
+        owner: str,
+        repo: str,
+        path: str,
+        content: str,
+        message: str,
+        branch: str,
+    ) -> dict:
+        """Create/update a file on a branch via Contents API."""
+        body: dict[str, Any] = {
+            "message": message,
+            "content": base64.b64encode(content.encode("utf-8")).decode("ascii"),
+            "branch": branch,
+        }
+        # If file exists on branch, include sha
+        status, existing = self._request_soft(
+            "GET",
+            f"{GITHUB_API}/repos/{owner}/{repo}/contents/{path.lstrip('/')}",
+            params={"ref": branch},
+        )
+        if status == 200 and isinstance(existing, dict) and existing.get("sha"):
+            body["sha"] = existing["sha"]
+
+        with httpx.Client(timeout=30.0, headers=self._headers()) as client:
+            response = client.put(
+                f"{GITHUB_API}/repos/{owner}/{repo}/contents/{path.lstrip('/')}",
+                json=body,
+            )
+            self._update_rate_limit(response)
+            response.raise_for_status()
+            data = response.json()
+            return data if isinstance(data, dict) else {}
+
+    def create_branch(self, owner: str, repo: str, branch: str, from_sha: str) -> dict:
+        with httpx.Client(timeout=30.0, headers=self._headers()) as client:
+            response = client.post(
+                f"{GITHUB_API}/repos/{owner}/{repo}/git/refs",
+                json={"ref": f"refs/heads/{branch}", "sha": from_sha},
+            )
+            self._update_rate_limit(response)
+            if response.status_code == 422:
+                # Branch may already exist
+                return {"ref": f"refs/heads/{branch}", "object": {"sha": from_sha}}
+            response.raise_for_status()
+            data = response.json()
+            return data if isinstance(data, dict) else {}
+
+    def create_pull_request(
+        self,
+        owner: str,
+        repo: str,
+        title: str,
+        head: str,
+        base: str,
+        body: str,
+    ) -> dict:
+        with httpx.Client(timeout=30.0, headers=self._headers()) as client:
+            response = client.post(
+                f"{GITHUB_API}/repos/{owner}/{repo}/pulls",
+                json={"title": title, "head": head, "base": base, "body": body},
+            )
+            self._update_rate_limit(response)
+            response.raise_for_status()
+            data = response.json()
+            return data if isinstance(data, dict) else {}
+
+    def get_ref_sha(self, owner: str, repo: str, ref: str) -> str | None:
+        status, data = self._request_soft(
+            "GET", f"{GITHUB_API}/repos/{owner}/{repo}/git/ref/heads/{ref}"
+        )
+        if status != 200 or not isinstance(data, dict):
+            return None
+        obj = data.get("object") or {}
+        sha = obj.get("sha")
+        return str(sha) if sha else None
 
 
 def parse_github_datetime(value: str | None) -> datetime | None:

@@ -150,3 +150,36 @@ class UptimeCheck(Base):
     ok: Mapped[bool] = mapped_column(Boolean, nullable=False)
     latency_ms: Mapped[float | None] = mapped_column(Float, nullable=True)
     detail: Mapped[str | None] = mapped_column(String(255), nullable=True)
+
+
+class VulnerabilityFinding(Base):
+    __tablename__ = "vulnerability_findings"
+    __table_args__ = (
+        UniqueConstraint(
+            "user_id",
+            "repo_id",
+            "fingerprint",
+            name="uq_vuln_finding_user_repo_fp",
+        ),
+    )
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), nullable=False, index=True)
+    repo_id: Mapped[int] = mapped_column(
+        ForeignKey("tracked_repositories.id"), nullable=False, index=True
+    )
+    source: Mapped[str] = mapped_column(String(64), nullable=False)
+    rule_id: Mapped[str] = mapped_column(String(128), nullable=False)
+    severity: Mapped[str] = mapped_column(String(32), nullable=False, index=True)
+    title: Mapped[str] = mapped_column(String(512), nullable=False)
+    detail: Mapped[str | None] = mapped_column(Text, nullable=True)
+    path: Mapped[str | None] = mapped_column(String(1024), nullable=True)
+    html_url: Mapped[str | None] = mapped_column(String(1024), nullable=True)
+    remediation: Mapped[str | None] = mapped_column(Text, nullable=True)
+    fingerprint: Mapped[str] = mapped_column(String(128), nullable=False)
+    scanned_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), nullable=False, index=True
+    )
+
+    repository: Mapped["TrackedRepository"] = relationship()
+
