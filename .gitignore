@@ -38,3 +38,7 @@ npm-debug.log*
 
 # Docker
 postgres_data/
+
+#MD
+pending.MD
+understand.MD
