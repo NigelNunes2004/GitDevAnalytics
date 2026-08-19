@@ -1,74 +1,116 @@
 # Pending — finish local work → deploy ($0)
 
-Auth (1A+2B) and the core dashboard features are implemented. What’s left is mostly ops, secrets, and going live.
+Auth (1A+2B), dashboard, vuln check, and GitHub extras (status, deployments, notifications, packages, workflows, profile) are **implemented**. Remaining work is local verification, secrets, and going live.
 
-## You (local / portfolio polish)
+---
 
-- [ ] Confirm frontend + backend start clean after reboot (`docker compose up -d db`, uvicorn, `npm run dev`)
-- [ ] Smoke-test: register → Settings (GitHub username + PAT) → track → sync → charts
-- [ ] Change bootstrap admin password if you still use `admin@localhost` / `changeme`
-- [ ] Generate a real `TOKEN_ENCRYPTION_KEY` for anything beyond throwaway local data  
-  (`python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"`)
-- [ ] Replace weak `JWT_SECRET=dev-only-change-me-in-production` before any public deploy
-- [ ] Optional: rotate GitHub PAT if it was ever pasted into chat, screenshots, or a shared `.env`
-- [ ] Commit/push any remaining local-only edits from your VS Code account (Cursor does not push)
-- [ ] Optional README pass: screenshots, demo credentials note, “what I learned” polish for recruiters
+## Priority order (start here)
 
-## Small code/config gaps before deploy
+Do these in order. Each phase should be fully checked off before moving on.
 
-- [ ] Update `render.yaml` env list to include `JWT_SECRET`, `TOKEN_ENCRYPTION_KEY`, `JWT_EXPIRE_MINUTES` (Blueprint still only lists older vars)
-- [ ] Confirm CI has whatever env defaults auth needs (or relies on app defaults — fine for pytest)
-- [ ] Optional: document webhook setup as “advanced / needs server `GITHUB_TOKEN`”
+### P0 — Local smoke (you, ~30 min)
 
-## Deploy — Supabase (database)
+Prove the app works end-to-end on your machine before touching cloud services.
 
-- [ ] Create free Supabase project
-- [ ] Copy pooler/`DATABASE_URL` in SQLAlchemy form: `postgresql+psycopg2://...`
-- [ ] Run `alembic upgrade head` against Supabase (or rely on backend container boot: migrations then uvicorn)
-- [ ] Do **not** point local `.env` at prod unless you intend to
+- [x] **1.** Start stack: `docker compose up -d db` → backend (`uvicorn`) → frontend (`npm run dev`)
+- [x] **2.** Smoke path: register → **Configuration** (PAT) → **Profile** (GitHub username) → track a repo → **Sync** → confirm dashboard charts populate
+- [ ] **3.** Spot-check extras: Commit status (message + +/- lines), Vulnerability scan, at least one other nav page loads without errors
+- [ ] **4.** Change bootstrap admin password if you still use `admin@localhost` / `changeme`
 
-## Deploy — Render (backend)
+### P1 — Secrets (you, ~15 min)
 
-- [ ] New Web Service from this repo, Docker, context/`Dockerfile` under `backend/`
-- [ ] Free plan; health check `/health`
-- [ ] Set secrets:
+Required before any public deploy. Generate once; reuse the same values on Render.
+
+- [ ] **5.** Generate `TOKEN_ENCRYPTION_KEY`:
+  ```bash
+  python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"
+  ```
+- [ ] **6.** Replace weak `JWT_SECRET=dev-only-change-me-in-production` with a long random string (password manager or `openssl rand -hex 32`)
+- [ ] **7.** Optional: rotate GitHub PAT if it was ever pasted into chat, screenshots, or a shared `.env`
+
+### P2 — Git hygiene (you, ~10 min)
+
+- [ ] **8.** Commit/push any local edits from VS Code (Cursor does not push for you)
+- [ ] **9.** Confirm GitHub Actions CI is green on `main` after push
+
+### P3 — Supabase (database)
+
+- [ ] **10.** Create free Supabase project
+- [ ] **11.** Copy pooler `DATABASE_URL` in SQLAlchemy form: `postgresql+psycopg2://...`
+- [ ] **12.** Run `alembic upgrade head` against Supabase (or rely on backend Docker boot: migrations then uvicorn)
+- [ ] **13.** Do **not** point local `.env` at prod unless you intend to
+
+### P4 — Render (backend)
+
+- [ ] **14.** New Web Service from this repo — Docker, context/`Dockerfile` under `backend/`
+- [ ] **15.** Free plan; health check `/health`
+- [ ] **16.** Set env secrets:
   - `DATABASE_URL` (Supabase)
-  - `JWT_SECRET` (strong, unique)
-  - `TOKEN_ENCRYPTION_KEY` (Fernet key)
+  - `JWT_SECRET` (strong, unique — same as P1)
+  - `TOKEN_ENCRYPTION_KEY` (Fernet — same as P1)
+  - `JWT_EXPIRE_MINUTES` (e.g. `10080`)
   - `CORS_ORIGINS` (your Vercel URL, e.g. `https://….vercel.app`)
   - `SYNC_INTERVAL_MINUTES` (e.g. `60`)
-  - Optional: `GITHUB_TOKEN` (webhooks / fallback only)
-- [ ] Note free-tier cold start (~30–50s after ~15 min idle) in any demo script
-- [ ] Smoke: `GET https://<render>/health` → `{"status":"ok"}`
+  - Optional: `GITHUB_TOKEN` (webhooks / scheduler fallback only)
+- [ ] **17.** Smoke: `GET https://<render>/health` → `{"status":"ok"}`
+- [ ] **18.** Note free-tier cold start (~30–50s after ~15 min idle) in demo script / README
 
-## Deploy — Vercel (frontend)
+### P5 — Vercel (frontend)
 
-- [ ] Import repo; Root Directory = `frontend`
-- [ ] Build: `npm run build`; Output: `dist`
-- [ ] Env: `VITE_API_BASE_URL=https://<your-render-service>.onrender.com`
-- [ ] Redeploy after env change (Vite bakes the URL at build time)
-- [ ] Open the site → register → Settings → PAT → track/sync against **prod** API
+- [ ] **19.** Import repo; Root Directory = `frontend`
+- [ ] **20.** Build: `npm run build`; Output: `dist`
+- [ ] **21.** Env: `VITE_API_BASE_URL=https://<your-render-service>.onrender.com`
+- [ ] **22.** Redeploy after env change (Vite bakes the URL at build time)
+- [ ] **23.** Open site → register → Settings → PAT → track/sync against **prod** API
 
-## Post-deploy checklist
+### P6 — Post-deploy validation
 
-- [ ] Register a fresh prod user (don’t reuse local JWT)
-- [ ] Save GitHub credentials in Settings; confirm Sync works
-- [ ] Confirm CORS: browser calls Render without blocked-origin errors
-- [ ] Confirm data isolation: second account doesn’t see first account’s repos
-- [ ] Optional: GitHub webhook → Render `/webhooks/github` (needs `GITHUB_WEBHOOK_SECRET` + server token)
-- [ ] Add live demo URL to README / portfolio
+- [ ] **24.** Register a fresh prod user (don’t reuse local JWT)
+- [ ] **25.** Save GitHub credentials; confirm Sync works
+- [ ] **26.** Confirm CORS: browser → Render without blocked-origin errors
+- [ ] **27.** Confirm data isolation: second account doesn’t see first account’s repos
+- [ ] **28.** Add live demo URL to README / portfolio
 
-## Explicitly out of scope (not blockers)
+### P7 — Optional polish (not blockers)
+
+- [ ] README pass: screenshots, demo credentials note, “what I learned” for recruiters
+- [ ] GitHub webhook → Render `/webhooks/github` (needs `GITHUB_WEBHOOK_SECRET` + server `GITHUB_TOKEN`)
+- [ ] Widen PAT scopes for full extras (see below)
+
+---
+
+## PAT scopes (informational — not deploy blockers)
+
+Core sync/charts need `repo` or `public_repo`. Extras are best-effort:
+
+
+| Feature                              | Scope                                       |
+| ------------------------------------ | ------------------------------------------- |
+| Vuln: Dependabot / secret scanning   | `security_events` + enable features on repo |
+| Commit status                        | `repo:status`                               |
+| Deployments                          | `repo_deployment`                           |
+| Notifications                        | `notifications`                             |
+| Packages (Profile → GitHub Packages) | `read:packages` (empty if you publish none) |
+| Workflow templates                   | `workflow`                                  |
+| Profile import                       | `read:user`                                 |
+
+
+INFO cards on Vulnerability check (“Dependabot unavailable”) mean GitHub returned nothing — fix repo settings and/or PAT, then re-save in Configuration.
+
+---
+
+## Done on the code side (agent)
+
+- [x] Commit status: tip message + +/- lines + recent commits list
+- [x] `render.yaml` includes `JWT_SECRET`, `TOKEN_ENCRYPTION_KEY`, `JWT_EXPIRE_MINUTES`
+- [x] CI sets explicit `JWT_SECRET` for pytest (app defaults also work)
+
+---
+
+## Explicitly out of scope
 
 - GitHub OAuth login
 - Password reset email
 - Refresh tokens / Redis sessions
 - Sharing repos between users
 
-## Suggested order
-
-1. Local smoke + strong secrets in mind
-2. Supabase + migrate
-3. Render + env
-4. Vercel + `VITE_API_BASE_URL`
-5. End-to-end prod smoke + README demo link

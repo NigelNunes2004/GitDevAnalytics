@@ -6,7 +6,6 @@ export type AppPage =
   | 'status'
   | 'deployments'
   | 'notifications'
-  | 'packages'
   | 'workflows'
   | 'config'
   | 'profile'
@@ -19,7 +18,6 @@ export const PAGE_LABELS: Record<AppPage, string> = {
   status: 'Commit status',
   deployments: 'Deployments',
   notifications: 'Notifications',
-  packages: 'Packages',
   workflows: 'Workflows',
   config: 'Configuration',
   profile: 'Profile',

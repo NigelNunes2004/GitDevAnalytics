@@ -26,7 +26,6 @@ import { ConfigPage } from './pages/ConfigPage'
 import { DashboardPage } from './pages/DashboardPage'
 import { DeploymentsPage } from './pages/DeploymentsPage'
 import { NotificationsPage } from './pages/NotificationsPage'
-import { PackagesPage } from './pages/PackagesPage'
 import { ProfilePage } from './pages/ProfilePage'
 import { ReposPage } from './pages/ReposPage'
 import { StatusPage } from './pages/StatusPage'
@@ -313,8 +312,6 @@ function App() {
     )
   } else if (page === 'notifications') {
     pageContent = <NotificationsPage tokenConfigured={user.token_configured} />
-  } else if (page === 'packages') {
-    pageContent = <PackagesPage tokenConfigured={user.token_configured} />
   } else if (page === 'workflows') {
     pageContent = (
       <WorkflowsPage

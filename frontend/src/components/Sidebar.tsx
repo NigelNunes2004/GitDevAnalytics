@@ -16,7 +16,6 @@ type IconKind =
   | 'status'
   | 'rocket'
   | 'bell'
-  | 'box'
   | 'flow'
   | 'gear'
   | 'user'
@@ -29,7 +28,6 @@ const ITEMS: { id: AppPage; label: string; icon: IconKind }[] = [
   { id: 'status', label: 'Commit status', icon: 'status' },
   { id: 'deployments', label: 'Deployments', icon: 'rocket' },
   { id: 'notifications', label: 'Notifications', icon: 'bell' },
-  { id: 'packages', label: 'Packages', icon: 'box' },
   { id: 'workflows', label: 'Workflows', icon: 'flow' },
   { id: 'config', label: 'Configuration', icon: 'gear' },
   { id: 'profile', label: 'Profile', icon: 'user' },
@@ -83,13 +81,6 @@ function NavIcon({ kind }: { kind: IconKind }) {
     return (
       <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden className={common}>
         <path d="M8 1a4 4 0 014 4v2.5l1.5 2H2.5L4 7.5V5a4 4 0 014-4zm0 14a2 2 0 002-2H6a2 2 0 002 2z" />
-      </svg>
-    )
-  }
-  if (kind === 'box') {
-    return (
-      <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden className={common}>
-        <path d="M8 1L1 4v8l7 3 7-3V4L8 1zm0 2.2L13 5 8 7 3 5l5-1.8zM3 6.5l4.5 1.8V14L3 12V6.5zm5.5 9.5V8.3L13 6.5V12l-4.5 4z" />
       </svg>
     )
   }

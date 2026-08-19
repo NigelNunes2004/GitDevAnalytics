@@ -1,4 +1,5 @@
 import { useState, type FormEvent } from 'react'
+import { PackagesPanel } from '../components/PackagesPanel'
 import { api, type User } from '../api'
 
 type Props = {
@@ -13,6 +14,7 @@ export function ProfilePage({ user, onUserUpdated }: Props) {
   const [status, setStatus] = useState('')
   const [error, setError] = useState('')
   const [busy, setBusy] = useState(false)
+  const [packagesOpen, setPackagesOpen] = useState(false)
 
   async function handleSave(e: FormEvent) {
     e.preventDefault()
@@ -77,7 +79,7 @@ export function ProfilePage({ user, onUserUpdated }: Props) {
       </header>
 
       <section className="gh-panel max-w-xl p-5">
-        <div className="mb-4">
+        <div className="mb-4 flex flex-wrap items-center gap-2">
           <button
             type="button"
             className="gh-btn"
@@ -86,10 +88,19 @@ export function ProfilePage({ user, onUserUpdated }: Props) {
           >
             Import from GitHub
           </button>
-          <p className="mt-2 mb-0 text-xs text-[var(--muted)]">
-            Uses <code className="font-[var(--mono)]">GET /user</code> (needs{' '}
-            <code className="font-[var(--mono)]">read:user</code>).
+          <button
+            type="button"
+            className="gh-btn text-xs"
+            disabled={!user.token_configured}
+            onClick={() => setPackagesOpen((v) => !v)}
+          >
+            {packagesOpen ? 'Hide packages' : 'GitHub Packages'}
+          </button>
+          <p className="m-0 w-full text-xs text-[var(--muted)]">
+            Import uses <code className="font-[var(--mono)]">read:user</code>. Packages need{' '}
+            <code className="font-[var(--mono)]">read:packages</code>.
           </p>
+          <PackagesPanel open={packagesOpen} tokenConfigured={user.token_configured} />
         </div>
         <form onSubmit={handleSave} className="space-y-4">
           <div className="flex items-center gap-4">
