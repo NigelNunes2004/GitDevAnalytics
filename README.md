@@ -2,6 +2,30 @@
 
 Full-stack DevOps portfolio project: sync GitHub commits/PRs/issues into Postgres, aggregate engineering activity, and visualize it in a React dashboard.
 
+## Live demo
+
+| | URL |
+| --- | --- |
+| **App (Vercel)** | [https://git-dev-analytics.vercel.app](https://git-dev-analytics.vercel.app) |
+| **API (Render)** | [https://gitdevanalytics.onrender.com](https://gitdevanalytics.onrender.com) |
+| **Health check** | [https://gitdevanalytics.onrender.com/health](https://gitdevanalytics.onrender.com/health) |
+| **API docs** | [https://gitdevanalytics.onrender.com/docs](https://gitdevanalytics.onrender.com/docs) |
+
+**How to try it:** register an account → **Configuration** (save a GitHub PAT) → **Profile** (GitHub username) → track a public repo → **Sync**. Charts populate after the first sync.
+
+> **Cold start (Render free tier):** the API sleeps after ~15 minutes idle. The first request can take **30–50 seconds** — refresh once if the app looks stuck. This is expected platform behavior, not a bug.
+
+> **Bring your own GitHub token:** the demo does not ship with shared credentials. Each user saves their own PAT; data is scoped per account.
+
+### Portfolio blurb (copy-paste)
+
+```text
+Git Activity Dashboard — full-stack DevOps portfolio app that syncs GitHub activity into Postgres and visualizes engineering metrics (commits, PR turnaround, contributors, CI, vuln checks). React + FastAPI + Supabase, deployed on Vercel + Render with Docker, Alembic migrations, JWT auth, and GitHub Actions CI.
+
+Live demo: https://git-dev-analytics.vercel.app
+Repo: https://github.com/NigelNunes2004/GitDevAnalytics
+```
+
 > **Deploy note (Render free tier):** the backend container spins down after ~15 minutes idle. The first request after idle can take **30–50 seconds** (cold start). That is expected platform behavior, not an application bug.
 
 ## Architecture
@@ -48,7 +72,7 @@ flowchart LR
 9. Dockerized local stack + CI pipeline
 10. Email/password JWT auth with per-user GitHub username + PAT in Settings
 11. **Vulnerability check** — DIY secret/env leak heuristics + optional Dependabot / secret-scanning alerts
-12. Commit statuses, deployments timeline, notifications inbox, GitHub Packages, workflow template PRs, GitHub profile import
+12. Commit statuses, deployments timeline, notifications inbox, GitHub Packages (Profile), workflow template PRs, GitHub profile import
 
 ## Quick start (local)
 
@@ -202,7 +226,9 @@ Run the same `alembic upgrade head` against Supabase before or as the Render ser
 1. Import the repo; set **Root Directory** to `frontend`
 2. Build command: `npm run build`
 3. Output directory: `dist`
-4. Env: `VITE_API_BASE_URL=https://<your-render-service>.onrender.com`
+4. Env: `VITE_API_BASE_URL=https://gitdevanalytics.onrender.com`
+
+**Live deployment:** [git-dev-analytics.vercel.app](https://git-dev-analytics.vercel.app)
 
 ## CI/CD
 

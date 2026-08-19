@@ -67,11 +67,11 @@ Required before any public deploy. Generate once; reuse the same values on Rende
 
 ### P5 — Vercel (frontend)
 
-- [ ] **19.** Import repo; Root Directory = `frontend`
-- [ ] **20.** Build: `npm run build`; Output: `dist`
-- [ ] **21.** Env: `VITE_API_BASE_URL=https://<your-render-service>.onrender.com`
-- [ ] **22.** Redeploy after env change (Vite bakes the URL at build time)
-- [ ] **23.** Open site → register → Settings → PAT → track/sync against **prod** API
+- [x] **19.** Import repo; Root Directory = `frontend`
+- [x] **20.** Build: `npm run build`; Output: `dist`
+- [x] **21.** Env: `VITE_API_BASE_URL=https://<your-render-service>.onrender.com`
+- [x] **22.** Redeploy after env change (Vite bakes the URL at build time)
+- [x] **23.** Open site → register → Settings → PAT → track/sync against **prod** API
 
 
 
@@ -81,7 +81,7 @@ Required before any public deploy. Generate once; reuse the same values on Rende
 - [ ] **25.** Save GitHub credentials; confirm Sync works
 - [ ] **26.** Confirm CORS: browser → Render without blocked-origin errors
 - [ ] **27.** Confirm data isolation: second account doesn’t see first account’s repos
-- [ ] **28.** Add live demo URL to README / portfolio
+- [x] **28.** Add live demo URL to README / portfolio
 
 
 
