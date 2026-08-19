@@ -27,7 +27,7 @@ jobs:
       - name: Pytest
         run: pytest -q
         env:
-          DATABASE_URL: sqlite+pysqlite:///:memory:
+          DATABASE_URL: "sqlite+pysqlite:///:memory:"
           GITHUB_TOKEN: test-token
           JWT_SECRET: ci-test-jwt-secret
           CORS_ORIGINS: http://localhost:5173
